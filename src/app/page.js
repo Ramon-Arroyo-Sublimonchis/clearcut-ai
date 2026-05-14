@@ -1,66 +1,40 @@
-import Image from "next/image";
-import styles from "./page.module.css";
+import BackgroundRemover from '@/components/BackgroundRemover';
+
+export const metadata = {
+  title: 'ClearCut AI - Eliminador de Fondos Profesional',
+  description: 'Elimina fondos de imágenes al instante usando IA avanzada en tu navegador. Rápido, seguro y sin límites.',
+};
 
 export default function Home() {
   return (
-    <div className={styles.page}>
-      <main className={styles.main}>
-        <Image
-          className={styles.logo}
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className={styles.intro}>
-          <h1>To get started, edit the page.js file.</h1>
-          <p>
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <main className="main-layout animate-in">
+      {/* Navigation */}
+      <nav className="nav-bar">
+        <div className="logo">CLEARCUT<span className="logo-dot">.</span>AI</div>
+        <div className="badge" style={{ marginBottom: 0 }}>BETA v1.0</div>
+      </nav>
+
+      {/* Compact Header for Typography */}
+      <section className="hero-compact">
+        <h1 className="hero-title-compact">
+          ELIMINA <span className="highlight">EL</span> FONDO
+        </h1>
+        <p className="hero-subtitle-compact">
+          Modelos de IA en alta definición ejecutándose completamente en tu navegador. Sin subir archivos. Sin límites.
+        </p>
+      </section>
+
+      {/* Main Tool Area - Maximized */}
+      <section className="tool-section">
+        <BackgroundRemover />
+      </section>
+
+      {/* Infinite Marquee Footer */}
+      <div className="marquee-container">
+        <div className="marquee-content">
+          PROCESAMIENTO LOCAL • NUNCA SE SUBE A SERVIDORES • CERO COSTO • EXPORTACIONES ILIMITADAS • RECORTES EN ALTA DEFINICIÓN • PROCESAMIENTO LOCAL • NUNCA SE SUBE A SERVIDORES • CERO COSTO • EXPORTACIONES ILIMITADAS • RECORTES EN ALTA DEFINICIÓN •
         </div>
-        <div className={styles.ctas}>
-          <a
-            className={styles.primary}
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className={styles.logo}
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className={styles.secondary}
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
+      </div>
+    </main>
   );
 }
