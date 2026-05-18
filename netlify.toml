@@ -1,0 +1,11 @@
+[[headers]]
+  for = "/*"
+  [headers.values]
+    Cross-Origin-Opener-Policy = "same-origin"
+    Cross-Origin-Embedder-Policy = "require-corp"
+
+# Configuración de caché para optimizar la carga de los modelos pesados
+[[headers]]
+  for = "/**/*.wasm"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
