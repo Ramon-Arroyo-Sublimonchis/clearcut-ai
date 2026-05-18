@@ -21,7 +21,7 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en" className={`${geistSans.variable} ${geistMono.variable}`}>
       <head>
-        {/* Google AdSense Script - Reemplaza "TU-ID-DE-ADSENSE" con tu ID real que empieza con ca-pub- */}
+        {/* Google AdSense Script */}
         <Script
           async
           src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-9446390749680019"
