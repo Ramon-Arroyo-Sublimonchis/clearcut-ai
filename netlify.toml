@@ -2,7 +2,6 @@
   for = "/*"
   [headers.values]
     Cross-Origin-Opener-Policy = "same-origin"
-    Cross-Origin-Embedder-Policy = "credentialless"
 
 # Configuración de caché para optimizar la carga de los modelos pesados
 [[headers]]
