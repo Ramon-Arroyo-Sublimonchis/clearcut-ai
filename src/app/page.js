@@ -10,7 +10,7 @@ export default function Home() {
     <main className="main-layout animate-in">
       {/* Navigation */}
       <nav className="nav-bar">
-        <div className="logo">CLEARCUT<span className="logo-dot">.</span>AI</div>
+        <div className="logo">SUBLIMONCHIS<span className="logo-dot">.</span>REMOVER</div>
         <div className="badge" style={{ marginBottom: 0 }}>BETA v1.0</div>
       </nav>
 
@@ -20,7 +20,7 @@ export default function Home() {
           ELIMINA <span className="highlight">EL</span> FONDO
         </h1>
         <p className="hero-subtitle-compact">
-          Modelos de IA en alta definición ejecutándose completamente en tu navegador. Sin subir archivos. Sin límites.
+          Modelos de IA locales Optimizados para navegador. Tus imágenes sin límites y nunca salen de tu Dispositivo.
         </p>
       </section>
 
