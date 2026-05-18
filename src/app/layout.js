@@ -21,13 +21,6 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en" className={`${geistSans.variable} ${geistMono.variable}`}>
       <head>
-        {/* Google AdSense Script */}
-        <Script
-          async
-          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-9446390749680019"
-          crossOrigin="anonymous"
-          strategy="afterInteractive"
-        />
       </head>
       <body>{children}</body>
     </html>

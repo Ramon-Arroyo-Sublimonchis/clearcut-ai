@@ -1,4 +1,5 @@
 import BackgroundRemover from '@/components/BackgroundRemover';
+import AdSenseBanner from '@/components/AdSenseBanner';
 
 export const metadata = {
   title: 'ClearCut AI - Eliminador de Fondos Profesional',
@@ -24,10 +25,15 @@ export default function Home() {
         </p>
       </section>
 
+      {/* AdSense Unit */}
+      <AdSenseBanner />
+
       {/* Main Tool Area - Maximized */}
       <section className="tool-section">
         <BackgroundRemover />
       </section>
+
+
 
       {/* Infinite Marquee Footer */}
       <div className="marquee-container">
