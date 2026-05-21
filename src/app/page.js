@@ -2,12 +2,16 @@ import BackgroundRemover from '@/components/BackgroundRemover';
 import AdSenseBanner from '@/components/AdSenseBanner';
 
 export const metadata = {
-  title: 'ClearCut AI - Eliminador de Fondos Profesional',
-  description: 'Elimina fondos de imágenes al instante usando IA avanzada en tu navegador. Rápido, seguro y sin límites.',
+  title: 'Sublimonchis Remover - Borrador de Fondos de Imagenes AI',
+  description: 'La Mejor herramienta Gratis para Eliminar fondo de imagen gratis online usando IA avanzada en tu navegador. Rápido, seguro y sin límites.',
 };
 
 export default function Home() {
   return (
+
+    {/* AdSense Unit */}
+      <AdSenseBanner />
+    
     <main className="main-layout animate-in">
       {/* Navigation */}
       <nav className="nav-bar">
@@ -21,13 +25,11 @@ export default function Home() {
           ELIMINA <span className="highlight">EL</span> FONDO
         </h1>
         <p className="hero-subtitle-compact">
-          Modelos de IA locales Optimizados para navegador. Tus imágenes sin límites y nunca salen de tu Dispositivo.
+          La Mejor herramienta Gratis para Eliminar fondo de imagen gratis y online usando IA avanzada en tu navegador
         </p>
       </section>
 
-      {/* AdSense Unit */}
-      <AdSenseBanner />
-
+      
       {/* Main Tool Area - Maximized */}
       <section className="tool-section">
         <BackgroundRemover />
