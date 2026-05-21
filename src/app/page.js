@@ -9,8 +9,7 @@ export const metadata = {
 export default function Home() {
   return (
 
-    {/* AdSense Unit */}
-      <AdSenseBanner />
+   
     
     <main className="main-layout animate-in">
       {/* Navigation */}
@@ -29,6 +28,8 @@ export default function Home() {
         </p>
       </section>
 
+      {/* AdSense Unit */}
+      <AdSenseBanner />
       
       {/* Main Tool Area - Maximized */}
       <section className="tool-section">
