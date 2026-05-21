@@ -2,7 +2,7 @@ import BackgroundRemover from '@/components/BackgroundRemover';
 import AdSenseBanner from '@/components/AdSenseBanner';
 
 export const metadata = {
-  title: 'ClearCut AI - Eliminador de Fondos Profesional',
+  title: 'Sublimonchis Remover- Eliminador de Fondos Profesional',
   description: 'Elimina fondos de imágenes al instante usando IA avanzada en tu navegador. Rápido, seguro y sin límites.',
 };
 
