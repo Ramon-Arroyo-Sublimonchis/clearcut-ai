@@ -14,6 +14,7 @@ import {
   COMPARISON,
   FAQ,
   jsonLd,
+  AD_SLOTS,
 } from '@/content/landing';
 
 export const metadata = {
@@ -49,11 +50,11 @@ export default function Home() {
       </section>
 
       {/* Slot 1: leaderboard antes del área de carga */}
-      <AdSlot slot={process.env.NEXT_PUBLIC_ADSENSE_SLOT_TOP} variant="leaderboard" />
+      <AdSlot slot={AD_SLOTS.top} variant="leaderboard" />
 
       {/* Main Tool Area - Maximized */}
       <section className="tool-section" aria-label="Herramienta para quitar fondos">
-        <BackgroundRemover adSlot={process.env.NEXT_PUBLIC_ADSENSE_SLOT_TOOL} />
+        <BackgroundRemover adSlot={AD_SLOTS.tool} />
       </section>
 
       {/* Infinite Marquee Footer: la segunda copia solo existe para el bucle visual */}
@@ -123,7 +124,7 @@ export default function Home() {
         </section>
 
         {/* Slot 3: in-content entre la tabla y la FAQ */}
-        <AdSlot slot={process.env.NEXT_PUBLIC_ADSENSE_SLOT_CONTENT} variant="rectangle" />
+        <AdSlot slot={AD_SLOTS.content} variant="rectangle" />
 
         <section aria-labelledby="faq-titulo">
           <h2 id="faq-titulo" className="info-title">Preguntas frecuentes</h2>

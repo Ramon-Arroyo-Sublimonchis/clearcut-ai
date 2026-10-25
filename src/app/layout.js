@@ -1,6 +1,6 @@
 import { Syne, DM_Mono } from "next/font/google";
 import "./globals.css";
-import { APP_NAME, SITE_URL, SEO_TITLE, SEO_DESCRIPTION } from "@/content/landing";
+import { APP_NAME, SITE_URL, SEO_TITLE, SEO_DESCRIPTION, ADSENSE_CLIENT } from "@/content/landing";
 
 const syne = Syne({
   variable: "--font-display",
@@ -42,7 +42,7 @@ export default function RootLayout({ children }) {
         {/* Script global de AdSense: carga los anuncios automáticos y los bloques <ins> */}
         <script
           async
-          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-9446390749680019"
+          src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${ADSENSE_CLIENT}`}
           crossOrigin="anonymous"
         />
       </head>

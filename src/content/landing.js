@@ -9,6 +9,15 @@ export const MUNDOLASER_URL = 'https://elmundolaser.com/';
 // sublimonchis.com aún no tiene página de contacto; se enlaza la portada
 export const CONTACT_URL = SUBLIMONCHIS_URL;
 
+// Los IDs de AdSense son públicos (salen en el HTML), por eso viven aquí y no en variables de entorno.
+export const ADSENSE_CLIENT = 'ca-pub-9446390749680019';
+// Mismo bloque que lightburntosvg.elmundolaser.com; se puede cambiar por bloques propios por ubicación
+export const AD_SLOTS = {
+  top: '7636974134',
+  tool: '7636974134',
+  content: '7636974134',
+};
+
 export const SEO_TITLE = `Quitar Fondo a una Imagen Gratis en HD (IA Ilimitada) | ${APP_NAME}`;
 export const SEO_DESCRIPTION =
   'Elimina el fondo de tus fotos e imágenes online, 100% gratis y en alta definición. Ideal para sublimación, DTF y fotograbado láser. Sin marcas de agua ni registros.';

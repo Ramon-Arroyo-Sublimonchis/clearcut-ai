@@ -17,17 +17,20 @@ npm run dev
 
 Abre [http://localhost:3000](http://localhost:3000).
 
-### Variables de entorno
+### Configuración
 
-| Variable | Uso |
+No hace falta configurar variables de entorno. Todo está en `src/content/landing.js`:
+
+- Nombre, versión, URLs, textos de la landing y JSON-LD.
+- AdSense: `ADSENSE_CLIENT` y `AD_SLOTS`, con los IDs de bloque de cada ubicación:
+
+| Clave | Ubicación |
 | --- | --- |
-| `NEXT_PUBLIC_ADSENSE_SLOT_TOP` | Bloque horizontal (90 px) bajo el encabezado, antes de la herramienta. |
-| `NEXT_PUBLIC_ADSENSE_SLOT_TOOL` | Bloque rectangular (250 px) bajo la herramienta; aparece con la primera imagen. |
-| `NEXT_PUBLIC_ADSENSE_SLOT_CONTENT` | Bloque rectangular (250 px) entre la tabla comparativa y las preguntas frecuentes. |
+| `top` | Bloque horizontal (90 px) bajo el encabezado, antes de la herramienta. |
+| `tool` | Bloque rectangular (250 px) bajo la herramienta; aparece con la primera imagen. |
+| `content` | Bloque rectangular (250 px) entre la tabla comparativa y las preguntas frecuentes. |
 
-Cada valor es el `data-ad-slot` de un bloque de AdSense. Si falta uno, en producción ese espacio no se muestra (en desarrollo se ve el espacio reservado) y los anuncios automáticos siguen activos.
-
-El nombre, la versión, los textos de la landing y el JSON-LD están en `src/content/landing.js`.
+Hoy los tres usan el mismo bloque (`7636974134`). Para ver informes separados por ubicación, crea bloques nuevos en AdSense y cambia los IDs en `AD_SLOTS`. En `localhost` AdSense no sirve anuncios, así que ahí solo se ve el espacio reservado.
 
 ## Licencia
 

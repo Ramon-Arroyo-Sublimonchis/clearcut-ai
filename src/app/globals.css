@@ -551,15 +551,6 @@ button:disabled { opacity: 0.4; cursor: not-allowed; pointer-events: none; }
 .ad-slot-rectangle .ad-space { min-height: 250px; }
 .ad-slot-rectangle { max-width: 336px; }
 .ad-slot-tool { margin-top: 2.5rem; }
-.ad-placeholder {
-  display: flex; align-items: center; justify-content: center;
-  min-height: inherit; height: 100%;
-  border: 1px dashed var(--border);
-  font-size: 0.75rem;
-  color: var(--gray);
-}
-.ad-slot-leaderboard .ad-placeholder { min-height: 90px; }
-.ad-slot-rectangle .ad-placeholder { min-height: 250px; }
 
 /* Bloque de ecosistema tras el recorte */
 .ecosystem {
