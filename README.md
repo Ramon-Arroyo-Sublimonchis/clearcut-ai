@@ -1,36 +1,34 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Sublimonchis Background Remover · Versión 3.0
 
-## Getting Started
+Herramienta web gratuita para quitar el fondo de imágenes con IA. Todo el proceso ocurre en el navegador del usuario: la imagen nunca se sube a un servidor.
 
-First, run the development server:
+## Cómo funciona
+
+- [Next.js](https://nextjs.org) 16 + React 19.
+- El recorte usa [@imgly/background-removal](https://github.com/imgly/background-removal-js) con el modelo ISNet (`isnet_fp16`), ejecutado con ONNX Runtime (WebGPU si está disponible, si no WASM).
+- El modelo y los archivos WASM se descargan del CDN de IMG.LY la primera vez y el navegador los guarda en caché.
+
+## Desarrollo
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Abre [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.js`. The page auto-updates as you edit the file.
+### Variables de entorno
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| Variable | Uso |
+| --- | --- |
+| `NEXT_PUBLIC_ADSENSE_SLOT_TOP` | Bloque horizontal (90 px) bajo el encabezado, antes de la herramienta. |
+| `NEXT_PUBLIC_ADSENSE_SLOT_TOOL` | Bloque rectangular (250 px) bajo la herramienta; aparece con la primera imagen. |
+| `NEXT_PUBLIC_ADSENSE_SLOT_CONTENT` | Bloque rectangular (250 px) entre la tabla comparativa y las preguntas frecuentes. |
 
-## Learn More
+Cada valor es el `data-ad-slot` de un bloque de AdSense. Si falta uno, en producción ese espacio no se muestra (en desarrollo se ve el espacio reservado) y los anuncios automáticos siguen activos.
 
-To learn more about Next.js, take a look at the following resources:
+El nombre, la versión, los textos de la landing y el JSON-LD están en `src/content/landing.js`.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Licencia
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Este proyecto se distribuye bajo la licencia [GNU AGPL-3.0](LICENSE.md), la misma de `@imgly/background-removal`. Si usas o modificas este código en un servicio público, debes publicar también tu código fuente.
