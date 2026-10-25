@@ -50,11 +50,26 @@ h1, h2, h3, .display-font {
 }
 
 .nav-bar {
-  padding: 1.5rem 2rem;
+  padding: 1rem 2rem;
   border-bottom: 1px solid var(--border);
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 1rem;
+}
+
+.brand {
+  display: flex; align-items: center; gap: 0.75rem;
+  min-width: 0;
+  text-decoration: none;
+}
+.brand-logo { flex-shrink: 0; width: 48px; height: 48px; }
+.nav-bar .badge { white-space: nowrap; }
+.badge-short { display: none; }
+
+/* Con el logo, el nombre completo deja de caber en una línea en pantallas medianas */
+@media (max-width: 1150px) {
+  .nav-bar .logo { font-size: 1.2rem; }
 }
 
 .logo {
@@ -797,7 +812,12 @@ button:disabled { opacity: 0.4; cursor: not-allowed; pointer-events: none; }
 
 @media (max-width: 640px) {
   .marquee-container { font-size: 1rem; }
-  .logo { font-size: 0.95rem; flex-direction: column; line-height: 1.15; }
+  .logo, .nav-bar .logo { font-size: 0.95rem; flex-direction: column; line-height: 1.15; }
+  .brand { gap: 0.5rem; }
+  /* En móvil la insignia corta deja espacio para el nombre en 2 líneas */
+  .badge-long { display: none; }
+  .badge-short { display: inline; }
+  .brand-logo { width: 40px; height: 40px; }
   .nav-bar .badge { font-size: 0.65rem; white-space: nowrap; }
   .legal-page { padding: 2.5rem 1rem; }
 }
