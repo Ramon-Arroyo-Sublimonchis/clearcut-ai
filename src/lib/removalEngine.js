@@ -9,14 +9,45 @@ const DESKTOP = {
   maxInputMP: 40,
 };
 const MOBILE = {
-  // En celular: mismo modelo en CPU (WebGPU es inestable en GPUs móviles).
+  // En celular se intenta WebGPU (unas 4 veces más rápido que la CPU) y si falla se repite en CPU.
   // No usar isnet_quint8: deja ~9% de residuos del fondo y huecos en el objeto.
-  config: { model: 'isnet_fp16', device: 'cpu' },
+  config: { model: 'isnet_fp16', device: 'gpu' },
   maxSide: 4096,
   maxPixels: 16_000_000,
   // Se acepta más porque se reduce antes de procesar (cubre cámaras de 48 y 50 MP)
   maxInputMP: 50,
 };
+
+// Recuerda si la GPU de este celular funciona. 'trying' que sobrevive a una recarga significa
+// que la pestaña se cerró o se cayó durante el intento con GPU, y se trata como falla.
+const GPU_STATE_KEY = 'bgr-mobile-gpu';
+const GPU_RETRY_AFTER_MS = 14 * 24 * 60 * 60 * 1000; // los navegadores se actualizan; volver a probar
+// Si la GPU tarda más que esto en la inferencia, se da por colgada y se pasa a CPU
+const GPU_INFERENCE_TIMEOUT_MS = 60_000;
+
+function readGpuState() {
+  try {
+    return JSON.parse(localStorage.getItem(GPU_STATE_KEY)) ?? null;
+  } catch {
+    return null;
+  }
+}
+
+function writeGpuState(state) {
+  try {
+    if (state) localStorage.setItem(GPU_STATE_KEY, JSON.stringify({ state, at: Date.now() }));
+    else localStorage.removeItem(GPU_STATE_KEY);
+  } catch {
+    // Sin almacenamiento solo se pierde la memoria del resultado
+  }
+}
+
+function mobileGpuAllowed(nav) {
+  if (!nav || !('gpu' in nav)) return false;
+  const saved = readGpuState();
+  if (!saved || saved.state === 'ok') return true;
+  return Date.now() - saved.at > GPU_RETRY_AFTER_MS;
+}
 
 export function getDeviceProfile() {
   const nav = typeof navigator === 'undefined' ? null : navigator;
@@ -26,12 +57,15 @@ export function getDeviceProfile() {
     /Android|iPhone|iPad|iPod|Mobi/i.test(ua) ||
     // iPadOS se presenta como Mac de escritorio
     (/Macintosh/.test(ua) && (nav?.maxTouchPoints ?? 0) > 1);
-  return { mobile: Boolean(mobile), ...(mobile ? MOBILE : DESKTOP) };
+  if (!mobile) return { mobile: false, ...DESKTOP };
+  const device = mobileGpuAllowed(nav) ? 'gpu' : 'cpu';
+  return { mobile: true, ...MOBILE, config: { ...MOBILE.config, device } };
 }
 
 // El worker murió a mitad de un proceso (casi siempre por falta de memoria)
 export class WorkerCrashError extends Error {}
 export class CancelledError extends Error {}
+class GpuTimeoutError extends Error {}
 
 const READY_TIMEOUT_MS = 15_000;
 
@@ -109,7 +143,7 @@ let mainLib = null;
 const loadMainLib = () => (mainLib ??= import('@imgly/background-removal'));
 
 export function preloadRemoval(profile) {
-  const key = profile.config.model;
+  const key = `${profile.config.model}:${profile.config.device}`;
   if (preloaded.has(key)) return;
   preloaded.add(key);
   getWorker()
@@ -121,6 +155,41 @@ export function preloadRemoval(profile) {
 }
 
 export async function removeBg(file, profile, onProgress) {
+  const gpuOnMobile = profile.mobile && profile.config.device === 'gpu';
+  if (!gpuOnMobile) return runOnce(file, profile, onProgress);
+
+  const previous = readGpuState()?.state ?? null;
+  writeGpuState('trying');
+  let timer = null;
+  try {
+    const result = await new Promise((resolve, reject) => {
+      const tracked = (key, current, total) => {
+        // El reloj corre desde que empieza la inferencia, para no castigar una descarga lenta
+        if (key === 'compute:inference' && !timer) {
+          timer = setTimeout(() => reject(new GpuTimeoutError('gpu timeout')), GPU_INFERENCE_TIMEOUT_MS);
+        }
+        onProgress(key, current, total);
+      };
+      runOnce(file, profile, tracked).then(resolve, reject);
+    });
+    writeGpuState('ok');
+    return result;
+  } catch (err) {
+    if (err instanceof CancelledError) {
+      writeGpuState(previous);
+      throw err;
+    }
+    console.warn('WebGPU falló en este celular; se repite en CPU:', err);
+    writeGpuState('failed');
+    // ONNX Runtime queda cargado en su versión WebGPU; un worker nuevo carga la de CPU
+    discardWorker(new WorkerCrashError('gpu fallback'));
+    return runOnce(file, { ...profile, config: { ...profile.config, device: 'cpu' } }, onProgress);
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+async function runOnce(file, profile, onProgress) {
   const w = await getWorker();
   if (w) {
     const id = ++nextId;
@@ -139,7 +208,9 @@ export async function removeBg(file, profile, onProgress) {
 
   const { source, width, height, downscaled } = await fitToLimits(file, profile.maxSide, profile.maxPixels);
   const { removeBackground } = await loadMainLib();
-  const blob = await removeBackground(source, { ...profile.config, progress: onProgress });
+  // En el hilo principal no se puede reiniciar ONNX Runtime para cambiar de GPU a CPU: el celular va directo a CPU
+  const config = profile.mobile ? { ...profile.config, device: 'cpu' } : profile.config;
+  const blob = await removeBackground(source, { ...config, progress: onProgress });
   return { blob, width, height, downscaled };
 }
 
