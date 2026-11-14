@@ -26,11 +26,10 @@ No hace falta configurar variables de entorno. Todo está en `src/content/landin
 
 | Clave | Ubicación |
 | --- | --- |
-| `top` | Bloque horizontal (90 px) bajo el encabezado, antes de la herramienta. |
 | `tool` | Bloque rectangular (250 px) bajo la herramienta; aparece con la primera imagen. |
 | `content` | Bloque rectangular (250 px) entre la tabla comparativa y las preguntas frecuentes. |
 
-Hoy los tres usan el mismo bloque (`7636974134`). Para ver informes separados por ubicación, crea bloques nuevos en AdSense y cambia los IDs en `AD_SLOTS`. En `localhost` AdSense no sirve anuncios, así que ahí solo se ve el espacio reservado.
+No hay anuncio antes de la herramienta: en celular crecía a 375 px, dejaba el área de carga fuera de la pantalla y mostraba botones de "Download" junto al de la app. Hoy los dos usan el mismo bloque (`7636974134`). Para ver informes separados por ubicación, crea bloques nuevos en AdSense y cambia los IDs en `AD_SLOTS`. En `localhost` AdSense no sirve anuncios, así que ahí solo se ve el espacio reservado.
 
 ## Licencia
 

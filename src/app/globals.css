@@ -551,7 +551,7 @@ button:disabled { opacity: 0.4; cursor: not-allowed; pointer-events: none; }
 /* Ad slots: altura reservada (anti-CLS) y 24 px mínimos de separación con botones */
 .ad-slot {
   width: 100%;
-  max-width: 970px;
+  max-width: 336px;
   margin: 1.5rem auto;
   text-align: center;
 }
@@ -564,9 +564,7 @@ button:disabled { opacity: 0.4; cursor: not-allowed; pointer-events: none; }
   color: var(--gray);
 }
 .ad-space { overflow: hidden; }
-.ad-slot-leaderboard .ad-space { min-height: 90px; }
-.ad-slot-rectangle .ad-space { min-height: 250px; }
-.ad-slot-rectangle { max-width: 336px; }
+.ad-space { min-height: 250px; }
 .ad-slot-tool { margin-top: 2.5rem; }
 
 /* Bloque de ecosistema tras el recorte */

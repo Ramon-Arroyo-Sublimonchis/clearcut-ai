@@ -505,7 +505,7 @@ export default function BackgroundRemover({ adSlot }) {
       </div>
 
       {/* Slot 2: se monta con la primera imagen y no se desmonta, para no recargar el anuncio ni mover el diseño */}
-      {hasStarted && <AdSlot slot={adSlot} variant="rectangle" className="ad-slot-tool" />}
+      {hasStarted && <AdSlot slot={adSlot} className="ad-slot-tool" />}
     </MotionConfig>
   );
 }

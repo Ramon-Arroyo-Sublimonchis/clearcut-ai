@@ -49,9 +49,7 @@ export default function Home() {
         <h1 className="hero-h1">{H1_TEXT}</h1>
       </section>
 
-      {/* Slot 1: leaderboard antes del área de carga */}
-      <AdSlot slot={AD_SLOTS.top} variant="leaderboard" />
-
+      {/* Sin anuncio antes de la herramienta: en celular crecía a 375 px y la sacaba de la pantalla */}
       {/* Main Tool Area - Maximized */}
       <section className="tool-section" aria-label="Herramienta para quitar fondos">
         <BackgroundRemover adSlot={AD_SLOTS.tool} />
@@ -123,8 +121,8 @@ export default function Home() {
           <p className="info-lead info-note">{COMPARISON.note}</p>
         </section>
 
-        {/* Slot 3: in-content entre la tabla y la FAQ */}
-        <AdSlot slot={AD_SLOTS.content} variant="rectangle" />
+        {/* In-content entre la tabla y la FAQ */}
+        <AdSlot slot={AD_SLOTS.content} />
 
         <section aria-labelledby="faq-titulo">
           <h2 id="faq-titulo" className="info-title">Preguntas frecuentes</h2>

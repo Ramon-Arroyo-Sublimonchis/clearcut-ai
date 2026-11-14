@@ -4,8 +4,8 @@ import { useEffect, useRef } from 'react';
 import { ADSENSE_CLIENT } from '@/content/landing';
 
 // Espacio de anuncio con altura reservada (anti-CLS) y etiqueta "Publicidad".
-// variant: 'leaderboard' (90 px) | 'rectangle' (250 px)
-export default function AdSlot({ slot, variant = 'leaderboard', className = '' }) {
+// Siempre rectangular (250 px reservados): los horizontales crecen en celular y mueven el diseño
+export default function AdSlot({ slot, className = '' }) {
   const pushed = useRef(false);
 
   useEffect(() => {
@@ -20,7 +20,7 @@ export default function AdSlot({ slot, variant = 'leaderboard', className = '' }
   }, []);
 
   return (
-    <aside className={`ad-slot ad-slot-${variant} ${className}`} aria-label="Publicidad">
+    <aside className={`ad-slot ${className}`} aria-label="Publicidad">
       <span className="ad-label">Publicidad</span>
       <div className="ad-space">
         <ins
@@ -28,7 +28,7 @@ export default function AdSlot({ slot, variant = 'leaderboard', className = '' }
           style={{ display: 'block' }}
           data-ad-client={ADSENSE_CLIENT}
           data-ad-slot={slot}
-          data-ad-format={variant === 'rectangle' ? 'rectangle' : 'horizontal'}
+          data-ad-format="rectangle"
           data-full-width-responsive="true"
         />
       </div>
