@@ -9,16 +9,12 @@ import CompareSlider from './CompareSlider';
 import PhotoFrame from './PhotoFrame';
 import AdSlot from './AdSlot';
 import { ECOSYSTEM_LINKS } from '@/content/landing';
-
-// isnet_fp16 pesa la mitad que isnet con casi la misma calidad; 'gpu' usa WebGPU y si no hay, WASM
-const REMOVAL_CONFIG = {
-  model: 'isnet_fp16',
-  device: 'gpu',
-};
+import {
+  getDeviceProfile, preloadRemoval, removeBg, cancelRemoval, WorkerCrashError, CancelledError,
+} from '@/lib/removalEngine';
 
 const ACCEPTED_TYPES = ['image/png', 'image/jpeg', 'image/webp'];
 const MAX_FILE_MB = 20;
-const MAX_MEGAPIXELS = 40;
 
 const PREVIEW_BACKGROUNDS = [
   { id: 'checker', label: 'Cuadrícula' },
@@ -26,28 +22,17 @@ const PREVIEW_BACKGROUNDS = [
   { id: 'black', label: 'Negro' },
 ];
 
-// La librería (~onnx + wasm) se carga solo cuando hace falta, fuera del bundle inicial
-let removalLib = null;
-const loadRemovalLib = () => {
-  removalLib ??= import('@imgly/background-removal');
-  return removalLib;
-};
+// A partir de aquí se avisa que tarda más de lo normal (en celular la IA corre en un solo núcleo)
+const SLOW_SECONDS = { desktop: 60, mobile: 150 };
 
-let preloadStarted = false;
-const preloadModel = () => {
-  if (preloadStarted) return;
-  preloadStarted = true;
-  loadRemovalLib()
-    .then((lib) => lib.preload(REMOVAL_CONFIG))
-    .catch(() => {
-      preloadStarted = false;
-    });
-};
+// Precarga solo con intención de uso, para no gastar datos de quien solo visita
+const preloadModel = () => preloadRemoval(getDeviceProfile());
 
 const formatMB = (bytes) => (bytes / 1024 / 1024).toFixed(1);
 
 // Devuelve { problem } si la imagen no sirve, o { width, height } si se puede procesar
 async function inspectFile(file) {
+  const { mobile, maxInputMP } = getDeviceProfile();
   if (!ACCEPTED_TYPES.includes(file.type)) {
     return { problem: 'Formato no compatible. Usa PNG, JPG o WebP.' };
   }
@@ -59,12 +44,16 @@ async function inspectFile(file) {
     const { width, height } = bitmap;
     bitmap.close();
     const megapixels = (width * height) / 1_000_000;
-    if (megapixels > MAX_MEGAPIXELS) {
-      return { problem: `La imagen es muy grande (${Math.round(megapixels)} MP). El máximo es ${MAX_MEGAPIXELS} MP.` };
+    if (megapixels > maxInputMP) {
+      return { problem: `La imagen es muy grande (${Math.round(megapixels)} MP). El máximo es ${maxInputMP} MP.` };
     }
     return { width, height };
   } catch {
-    return { problem: 'No se pudo leer la imagen. Puede estar dañada.' };
+    return {
+      problem: mobile
+        ? 'Tu celular no pudo abrir esta imagen. Puede ser demasiado grande; prueba con una foto más pequeña o una captura de pantalla.'
+        : 'No se pudo leer la imagen. Puede estar dañada.',
+    };
   }
 }
 
@@ -81,6 +70,9 @@ export default function BackgroundRemover({ adSlot }) {
   const [meta, setMeta] = useState(null);
   const [moreOpen, setMoreOpen] = useState(false);
   const [hasStarted, setHasStarted] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+  const [elapsed, setElapsed] = useState(0);
+  const runIdRef = useRef(0);
   const fileInputRef = useRef(null);
   const dialogRef = useRef(null);
   const urlsRef = useRef([]);
@@ -99,35 +91,51 @@ export default function BackgroundRemover({ adSlot }) {
   useEffect(() => releaseUrls, [releaseUrls]);
 
   const runRemoval = useCallback(async (source) => {
+    const runId = ++runIdRef.current;
+    const profile = getDeviceProfile();
+    setIsMobile(profile.mobile);
     setError(null);
     setProcessedImage(null);
     setDownload({ current: 0, total: 0 });
+    setElapsed(0);
     // Se queda en 'download' hasta que la librería empieza a calcular (claves compute:*)
     setPhase('download');
 
     const fetches = {};
+    const onProgress = (key, current, total) => {
+      if (runId !== runIdRef.current) return;
+      if (key.startsWith('fetch:')) {
+        fetches[key] = { current, total };
+        const all = Object.values(fetches);
+        const sum = all.reduce((acc, f) => acc + f.current, 0);
+        const size = all.reduce((acc, f) => acc + f.total, 0);
+        setDownload({ current: sum, total: size });
+      } else {
+        setPhase('process');
+      }
+    };
+
     try {
-      const { removeBackground } = await loadRemovalLib();
-      const blob = await removeBackground(source, {
-        ...REMOVAL_CONFIG,
-        progress: (key, current, total) => {
-          if (key.startsWith('fetch:')) {
-            fetches[key] = { current, total };
-            const all = Object.values(fetches);
-            const sum = all.reduce((acc, f) => acc + f.current, 0);
-            const size = all.reduce((acc, f) => acc + f.total, 0);
-            setDownload({ current: sum, total: size });
-          } else {
-            setPhase('process');
-          }
-        },
-      });
-      setProcessedImage(trackUrl(blob));
-      setMeta((m) => ({ ...m, resultSize: blob.size }));
+      const result = await removeBg(source, profile, onProgress);
+      // Se canceló o se eligió otra imagen mientras procesaba
+      if (runId !== runIdRef.current) return;
+      setProcessedImage(trackUrl(result.blob));
+      setMeta((m) => ({
+        ...m,
+        resultSize: result.blob.size,
+        downscaled: result.downscaled,
+        outWidth: result.width,
+        outHeight: result.height,
+      }));
       setPhase('done');
     } catch (err) {
+      if (err instanceof CancelledError || runId !== runIdRef.current) return;
       console.error('Removal failed:', err);
-      setError('No pudimos quitar el fondo de esta imagen. Revisa tu conexión e inténtalo otra vez.');
+      setError(
+        err instanceof WorkerCrashError
+          ? 'Tu dispositivo se quedó sin memoria. Prueba con una foto más pequeña o cierra otras pestañas e inténtalo otra vez.'
+          : 'No pudimos quitar el fondo de esta imagen. Revisa tu conexión e inténtalo otra vez.',
+      );
       setPhase('error');
     }
   }, [trackUrl]);
@@ -152,6 +160,14 @@ export default function BackgroundRemover({ adSlot }) {
 
   const busy = phase === 'download' || phase === 'process';
 
+  // Segundos transcurridos, para que una espera larga no parezca un bloqueo
+  useEffect(() => {
+    if (!busy) return;
+    const start = Date.now();
+    const timer = setInterval(() => setElapsed(Math.floor((Date.now() - start) / 1000)), 1000);
+    return () => clearInterval(timer);
+  }, [busy]);
+
   // Pegar una imagen con Ctrl+V / Cmd+V
   useEffect(() => {
     const onPaste = (e) => {
@@ -170,6 +186,9 @@ export default function BackgroundRemover({ adSlot }) {
   };
 
   const reset = () => {
+    // Invalida el proceso en curso; si seguía calculando, se detiene el worker para liberar memoria
+    runIdRef.current++;
+    if (busy) cancelRemoval();
     releaseUrls();
     setFile(null);
     setImage(null);
@@ -194,11 +213,13 @@ export default function BackgroundRemover({ adSlot }) {
   };
 
   const downloadPercent = download.total ? Math.round((download.current / download.total) * 100) : 0;
+  // Al terminar la descarga aún se compila WASM y se crea la sesión: se muestra como preparación
+  const downloading = phase === 'download' && download.total > 0 && download.current < download.total;
   const statusText =
     phase === 'download'
-      ? download.total
+      ? downloading
         ? `Descargando modelo de IA: ${formatMB(download.current)} de ${formatMB(download.total)} MB`
-        : 'Preparando el modelo de IA…'
+        : 'Preparando la IA en tu dispositivo…'
       : phase === 'process'
         ? 'Quitando el fondo…'
         : phase === 'done'
@@ -209,8 +230,19 @@ export default function BackgroundRemover({ adSlot }) {
   const ratio = meta ? meta.width / meta.height : 1;
   const done = phase === 'done';
   const metaText = meta
-    ? [`${meta.width} × ${meta.height} px`, meta.resultSize && `PNG ${formatMB(meta.resultSize)} MB`].filter(Boolean).join(' · ')
+    ? [
+        meta.downscaled
+          ? `${meta.outWidth} × ${meta.outHeight} px (reducida para tu celular)`
+          : `${meta.width} × ${meta.height} px`,
+        meta.resultSize && `PNG ${formatMB(meta.resultSize)} MB`,
+      ].filter(Boolean).join(' · ')
     : '';
+  const waitNote =
+    elapsed >= SLOW_SECONDS[isMobile ? 'mobile' : 'desktop']
+      ? 'Está tardando más de lo normal. Puedes cancelar y probar con una foto más pequeña.'
+      : isMobile
+        ? 'En celular puede tardar uno o dos minutos. Todo ocurre en tu dispositivo; la imagen no se sube.'
+        : 'Todo ocurre en tu dispositivo; la imagen no se sube.';
 
   const bgSwitch = (
     <div className="bg-switch" role="group" aria-label="Fondo de vista previa">
@@ -273,7 +305,6 @@ export default function BackgroundRemover({ adSlot }) {
                     fileInputRef.current?.click();
                   }
                 }}
-                // Precarga solo con intención de uso, para no gastar datos de quien solo visita
                 onPointerEnter={preloadModel}
                 onFocus={preloadModel}
               >
@@ -365,7 +396,7 @@ export default function BackgroundRemover({ adSlot }) {
                       ) : (
                         <PhotoFrame src={image} alt="" label="Sin fondo" ratio={ratio} dimmed>
                           <div className="processing-state">
-                            {phase === 'download' && download.total > 0 ? (
+                            {downloading ? (
                               <>
                                 <div className="progress-text">{downloadPercent}%</div>
                                 <div className="progress-bar-bg">
@@ -383,10 +414,16 @@ export default function BackgroundRemover({ adSlot }) {
                                 <div className="progress-bar-bg">
                                   <div className="progress-bar-indeterminate" />
                                 </div>
-                                <p className="progress-label">{statusText}</p>
-                                <p className="progress-note">Todo ocurre en tu dispositivo; la imagen no se sube.</p>
+                                <p className="progress-label">
+                                  {statusText}
+                                  {elapsed > 0 && <span className="progress-elapsed"> {elapsed} s</span>}
+                                </p>
+                                <p className="progress-note">{waitNote}</p>
                               </>
                             )}
+                            <button className="secondary-btn progress-cancel" onClick={reset}>
+                              <X className="icon-md" aria-hidden="true" /> Cancelar
+                            </button>
                           </div>
                         </PhotoFrame>
                       )}

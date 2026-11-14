@@ -390,7 +390,9 @@ h1, h2, h3, .display-font {
 }
 
 .progress-label { font-size: 0.95rem; color: var(--text); }
-.progress-note { font-size: 0.75rem; color: var(--gray); }
+.progress-note { font-size: 0.75rem; color: var(--gray); max-width: 32ch; }
+.progress-elapsed { color: var(--gray); font-variant-numeric: tabular-nums; }
+.progress-cancel { margin-top: 0.25rem; }
 
 /* Error */
 .error-state {

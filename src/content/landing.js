@@ -101,7 +101,7 @@ export const FAQ = [
   },
   {
     q: '¿Qué formatos de imagen acepta y cuál entrega?',
-    a: 'Acepta imágenes PNG, JPG y WebP de hasta 20 MB y 40 megapíxeles. Entrega siempre un PNG con fondo transparente, el formato que necesitan la sublimación, el DTF, el vinil y los programas de grabado láser.',
+    a: 'Acepta imágenes PNG, JPG y WebP de hasta 20 MB y 40 megapíxeles. Entrega siempre un PNG con fondo transparente, el formato que necesitan la sublimación, el DTF, el vinil y los programas de grabado láser. En celular acepta fotos de hasta 50 megapíxeles: las de más de 16 megapíxeles se reducen a 4096 px por lado para que el proceso no se trabe, y las fotos normales de 12 megapíxeles se quedan en su resolución original.',
   },
   {
     q: '¿Puedo usar los recortes con fines comerciales?',
