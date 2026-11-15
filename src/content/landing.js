@@ -12,8 +12,9 @@ export const CONTACT_URL = SUBLIMONCHIS_URL;
 // Los IDs de AdSense son públicos (salen en el HTML), por eso viven aquí y no en variables de entorno.
 export const ADSENSE_CLIENT = 'ca-pub-9446390749680019';
 // Mismo bloque que lightburntosvg.elmundolaser.com; se puede cambiar por bloques propios por ubicación
-// No hay bloque antes de la herramienta: tapaba el área de carga en celular y atraía clics por error
+// `top` es un banner horizontal antes de la herramienta, solo desde 768 px: en celular tapaba el área de carga
 export const AD_SLOTS = {
+  top: '7636974134',
   tool: '7636974134',
   content: '7636974134',
 };

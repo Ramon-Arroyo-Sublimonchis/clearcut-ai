@@ -49,7 +49,9 @@ export default function Home() {
         <h1 className="hero-h1">{H1_TEXT}</h1>
       </section>
 
-      {/* Sin anuncio antes de la herramienta: en celular crecía a 375 px y la sacaba de la pantalla */}
+      {/* Banner horizontal solo en tableta y computadora: en celular sacaba la herramienta de la pantalla */}
+      <AdSlot slot={AD_SLOTS.top} className="ad-slot-top" format="horizontal" media="(min-width: 768px)" />
+
       {/* Main Tool Area - Maximized */}
       <section className="tool-section" aria-label="Herramienta para quitar fondos">
         <BackgroundRemover adSlot={AD_SLOTS.tool} />

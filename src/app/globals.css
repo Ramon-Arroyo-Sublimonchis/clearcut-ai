@@ -567,6 +567,14 @@ button:disabled { opacity: 0.4; cursor: not-allowed; pointer-events: none; }
 .ad-space { min-height: 250px; }
 .ad-slot-tool { margin-top: 2.5rem; }
 
+/* Banner entre el título y la herramienta: alto fijo de 90 px para que no empuje la app.
+   Separado de la barra de la herramienta para evitar clics por error en lugar de "Descargar" */
+.ad-slot-top { max-width: 728px; margin: 0 auto 2rem; }
+.ad-slot-top .ad-space { min-height: 90px; height: 90px; }
+@media (max-width: 767px) {
+  .ad-slot-top { display: none; }
+}
+
 /* Bloque de ecosistema tras el recorte */
 .ecosystem {
   padding: 1.5rem;
