@@ -3,10 +3,11 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence, MotionConfig } from 'framer-motion';
 import {
-  Upload, X, Download, Image as ImageIcon, RotateCcw, AlertTriangle, Maximize2, Columns2, MoreHorizontal, ExternalLink,
+  Upload, X, Download, Image as ImageIcon, RotateCcw, AlertTriangle, Maximize2, Columns2, MoreHorizontal, ExternalLink, Paintbrush,
 } from 'lucide-react';
 import CompareSlider from './CompareSlider';
 import PhotoFrame from './PhotoFrame';
+import RetouchEditor from './RetouchEditor';
 import AdSlot from './AdSlot';
 import { ECOSYSTEM_LINKS } from '@/content/landing';
 import {
@@ -72,6 +73,7 @@ export default function BackgroundRemover({ adSlot }) {
   const [hasStarted, setHasStarted] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [elapsed, setElapsed] = useState(0);
+  const [retouchOpen, setRetouchOpen] = useState(false);
   const runIdRef = useRef(0);
   const fileInputRef = useRef(null);
   const dialogRef = useRef(null);
@@ -196,10 +198,22 @@ export default function BackgroundRemover({ adSlot }) {
     setError(null);
     setMeta(null);
     setMoreOpen(false);
+    setRetouchOpen(false);
     setPhase('idle');
   };
 
   const openExpanded = () => dialogRef.current?.showModal();
+  const openRetouch = () => {
+    setMoreOpen(false);
+    setRetouchOpen(true);
+  };
+
+  // El retoque reemplaza el resultado: la descarga y la comparación usan la versión corregida
+  const applyRetouch = (blob) => {
+    setProcessedImage(trackUrl(blob));
+    setMeta((m) => ({ ...m, resultSize: blob.size }));
+    setRetouchOpen(false);
+  };
   const closeExpanded = () => dialogRef.current?.close();
 
   const saveImage = () => {
@@ -339,6 +353,9 @@ export default function BackgroundRemover({ adSlot }) {
                 {phase !== 'error' && (
                   <div className="header-actions">
                     {bgSwitch}
+                    <button className="secondary-btn" onClick={openRetouch} disabled={!done}>
+                      <Paintbrush className="icon-md" aria-hidden="true" /> Retocar
+                    </button>
                     <button className="secondary-btn" onClick={openExpanded} disabled={!done}>
                       <Columns2 className="icon-md" aria-hidden="true" /> Comparar
                     </button>
@@ -391,6 +408,10 @@ export default function BackgroundRemover({ adSlot }) {
                         >
                           <button className="icon-button frame-expand" onClick={openExpanded} aria-label="Ampliar y comparar">
                             <Maximize2 className="icon-md" aria-hidden="true" />
+                          </button>
+                          {/* A la vista sobre el resultado: es donde se notan los restos del fondo */}
+                          <button className="secondary-btn frame-retouch" onClick={openRetouch}>
+                            <Paintbrush className="icon-md" aria-hidden="true" /> Retocar
                           </button>
                         </PhotoFrame>
                       ) : (
@@ -455,6 +476,9 @@ export default function BackgroundRemover({ adSlot }) {
                           <button className="secondary-btn" onClick={openExpanded} disabled={!done}>
                             <Columns2 className="icon-md" aria-hidden="true" /> Comparar
                           </button>
+                          <button className="secondary-btn" onClick={openRetouch} disabled={!done}>
+                            <Paintbrush className="icon-md" aria-hidden="true" /> Retocar
+                          </button>
                           <button className="secondary-btn" onClick={reset}>
                             <Upload className="icon-md" aria-hidden="true" /> Otra imagen
                           </button>
@@ -502,6 +526,17 @@ export default function BackgroundRemover({ adSlot }) {
             </>
           )}
         </dialog>
+
+        {retouchOpen && done && (
+          <RetouchEditor
+            original={image}
+            result={processedImage}
+            ratio={ratio}
+            previewBg={previewBg}
+            onApply={applyRetouch}
+            onClose={() => setRetouchOpen(false)}
+          />
+        )}
       </div>
 
       {/* Slot 2: se monta con la primera imagen y no se desmonta, para no recargar el anuncio ni mover el diseño */}

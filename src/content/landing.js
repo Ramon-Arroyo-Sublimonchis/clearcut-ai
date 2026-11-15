@@ -41,7 +41,7 @@ export const STEPS = [
   },
   {
     title: 'Descarga el PNG en HD',
-    text: 'Revisa el resultado sobre cuadrícula, blanco o negro, compara con la original y descarga tu PNG transparente en la misma resolución de la foto original.',
+    text: 'Revisa el resultado sobre cuadrícula, blanco o negro, compara con la original, borra con "Retocar" cualquier resto del fondo y descarga tu PNG transparente en la misma resolución de la foto original.',
   },
 ];
 
