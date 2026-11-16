@@ -6,7 +6,10 @@ export default function PhotoFrame({ src, alt, label, ratio, previewBg, dimmed, 
       style={{ '--ratio': ratio }}
       onDoubleClick={onDoubleClick}
     >
-      {src && <img src={src} alt={alt} className={`compare-img${dimmed ? ' is-dimmed' : ''}`} draggable={false} />}
+      {/* Capa del zoom de la vista previa (usePreviewZoom); etiqueta y botones quedan fuera y no crecen */}
+      <div className="photo-zoom">
+        {src && <img src={src} alt={alt} className={`compare-img${dimmed ? ' is-dimmed' : ''}`} draggable={false} />}
+      </div>
       <span className="compare-tag compare-tag-left">{label}</span>
       {children}
     </div>

@@ -3,11 +3,12 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { flushSync } from 'react-dom';
 import {
-  X, Eraser, Paintbrush, Hand, Undo2, ZoomIn, ZoomOut, Maximize, Mouse, Eye, EyeOff, Check,
+  X, Eraser, Paintbrush, PaintBucket, Hand, Undo2, ZoomIn, ZoomOut, Maximize, Mouse, Eye, EyeOff, Check,
 } from 'lucide-react';
 
 // Pincel para corregir a mano lo que la IA recortó mal: "Borrar" quita restos del fondo
 // y "Restaurar" devuelve partes de la foto original que la IA borró.
+// "Rellenar" recupera de un clic un hueco transparente rodeado por la figura (p. ej. una zona blanca del diseño).
 // Trabaja sobre el PNG en su resolución real; los trazos se guardan para poder deshacer sin copias de la imagen.
 
 // Zoom en píxeles reales de la foto: 1 = 100 % (1:1). El mínimo es lo que cabe en pantalla
@@ -17,10 +18,17 @@ const ZOOM_STEP = 1.25;
 const WHEEL_ZOOM_SPEED = 0.0025;
 const MIN_BRUSH = 4;
 const MAX_BRUSH = 160;
+// Rellenar: cuenta como hueco lo que tiene menos de este alfa, y el parche crece unos píxeles
+// sobre el borde semitransparente para que no quede una línea fantasma
+const HOLE_ALPHA = 230;
+const FILL_GROW = 2;
+// Un toque que se mueve más que esto es un arrastre, no un clic de Rellenar
+const TAP_SLOP = 10;
 
 const TOOLS = [
   { id: 'erase', label: 'Borrar', Icon: Eraser },
   { id: 'restore', label: 'Restaurar', Icon: Paintbrush },
+  { id: 'fill', label: 'Rellenar', Icon: PaintBucket },
   { id: 'pan', label: 'Mover', Icon: Hand },
 ];
 
@@ -65,7 +73,91 @@ function paintSegment(engine, stroke, from, to) {
   ctx.restore();
 }
 
+// Busca la zona transparente conectada al punto (x, y) y devuelve un parche con esa zona de la foto original.
+// Si la zona llega a la orilla de la imagen es el fondo real y no se rellena.
+function buildFill(engine, x, y) {
+  const { ctx, orig, width, height } = engine;
+  const alpha = ctx.getImageData(0, 0, width, height).data;
+  const start = y * width + x;
+  if (alpha[start * 4 + 3] >= HOLE_ALPHA) return { error: 'solid' };
+
+  const region = new Uint8Array(width * height);
+  region[start] = 1;
+  const stack = [start];
+  let minX = x, maxX = x, minY = y, maxY = y;
+  while (stack.length) {
+    const i = stack.pop();
+    const px = i % width;
+    const py = (i - px) / width;
+    if (px === 0 || py === 0 || px === width - 1 || py === height - 1) return { error: 'edge' };
+    if (px < minX) minX = px; else if (px > maxX) maxX = px;
+    if (py < minY) minY = py; else if (py > maxY) maxY = py;
+    for (const n of [i - 1, i + 1, i - width, i + width]) {
+      if (!region[n] && alpha[n * 4 + 3] < HOLE_ALPHA) {
+        region[n] = 1;
+        stack.push(n);
+      }
+    }
+  }
+
+  // Recuadro de la zona más el crecimiento (la zona nunca toca la orilla, así que cabe)
+  const x0 = minX - FILL_GROW < 0 ? 0 : minX - FILL_GROW;
+  const y0 = minY - FILL_GROW < 0 ? 0 : minY - FILL_GROW;
+  const w = Math.min(width, maxX + FILL_GROW + 1) - x0;
+  const h = Math.min(height, maxY + FILL_GROW + 1) - y0;
+
+  // Crece la zona FILL_GROW px (primero en horizontal y luego en vertical), solo sobre píxeles casi opacos:
+  // un píxel transparente fuera de la zona es otro hueco o el fondo y no se toca
+  const rowGrow = new Uint8Array(w * h);
+  for (let ry = 0; ry < h; ry++) {
+    const row = (y0 + ry) * width;
+    for (let rx = 0; rx < w; rx++) {
+      const gx = x0 + rx;
+      for (let d = -FILL_GROW; d <= FILL_GROW; d++) {
+        const nx = gx + d;
+        if (nx >= 0 && nx < width && region[row + nx]) {
+          rowGrow[ry * w + rx] = 1;
+          break;
+        }
+      }
+    }
+  }
+  const patch = document.createElement('canvas');
+  patch.width = w;
+  patch.height = h;
+  const pctx = patch.getContext('2d');
+  pctx.drawImage(orig, x0, y0, w, h, 0, 0, w, h);
+  const img = pctx.getImageData(0, 0, w, h);
+  const out = img.data;
+  for (let ry = 0; ry < h; ry++) {
+    for (let rx = 0; rx < w; rx++) {
+      const gi = (y0 + ry) * width + x0 + rx;
+      let inside = region[gi] === 1;
+      if (!inside && alpha[gi * 4 + 3] >= HOLE_ALPHA) {
+        for (let d = -FILL_GROW; d <= FILL_GROW; d++) {
+          const ny = ry + d;
+          if (ny >= 0 && ny < h && rowGrow[ny * w + rx]) {
+            inside = true;
+            break;
+          }
+        }
+      }
+      if (!inside) out[(ry * w + rx) * 4 + 3] = 0;
+    }
+  }
+  pctx.putImageData(img, 0, 0);
+  return { fill: { mode: 'fill', x: x0, y: y0, patch } };
+}
+
 function paintStroke(engine, stroke) {
+  if (stroke.mode === 'fill') {
+    const { ctx } = engine;
+    ctx.save();
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.drawImage(stroke.patch, stroke.x, stroke.y);
+    ctx.restore();
+    return;
+  }
   const [first, ...rest] = stroke.points;
   paintDot(engine, stroke, first);
   let prev = first;
@@ -99,6 +191,8 @@ export default function RetouchEditor({ original, result, ratio, previewBg, onAp
   const [spacePan, setSpacePan] = useState(false);
   const [showOriginal, setShowOriginal] = useState(false);
   const [strokeCount, setStrokeCount] = useState(0);
+  // Aviso de Rellenar cuando el clic no cae en un hueco
+  const [notice, setNotice] = useState('');
   const [fit, setFit] = useState({ width: 0, height: 0 });
   // El editor solo se monta en el navegador, así que se puede leer navigator al iniciar
   const [modKey] = useState(() => (/Mac|iPhone|iPad/.test(navigator.platform) ? '⌘' : 'Ctrl'));
@@ -142,7 +236,9 @@ export default function RetouchEditor({ original, result, ratio, previewBg, onAp
       const octx = origCanvas.getContext('2d');
       octx.imageSmoothingQuality = 'high';
       octx.drawImage(orig, 0, 0, width, height);
-      engineRef.current = { ctx, base: res, pattern: ctx.createPattern(origCanvas, 'no-repeat'), width, height };
+      engineRef.current = {
+        ctx, base: res, orig: origCanvas, pattern: ctx.createPattern(origCanvas, 'no-repeat'), width, height,
+      };
       setImageSize({ width, height });
       setStatus('ready');
     })().catch((err) => {
@@ -355,6 +451,12 @@ export default function RetouchEditor({ original, result, ratio, previewBg, onAp
       return;
     }
 
+    // Rellenar actúa al soltar, para que un pellizco o un arrastre no rellenen por error
+    if (activeTool === 'fill') {
+      activeRef.current = { pointerId: e.pointerId, tap: { x: e.clientX, y: e.clientY, point: toImagePoint(e) } };
+      return;
+    }
+
     const canvas = canvasRef.current;
     const toImageScale = canvas.width / canvas.getBoundingClientRect().width;
     const stroke = { mode: activeTool, size: brush * toImageScale, points: [toImagePoint(e)] };
@@ -379,8 +481,13 @@ export default function RetouchEditor({ original, result, ratio, previewBg, onAp
     }
 
     const active = activeRef.current;
-    if (activeTool !== 'pan') moveCursor(e);
+    if (activeTool !== 'pan' && activeTool !== 'fill') moveCursor(e);
     if (!active || active.pointerId !== e.pointerId) return;
+
+    if (active.tap) {
+      if (Math.hypot(e.clientX - active.tap.x, e.clientY - active.tap.y) > TAP_SLOP) activeRef.current = null;
+      return;
+    }
 
     if (active.pan) {
       const viewport = viewportRef.current;
@@ -416,6 +523,26 @@ export default function RetouchEditor({ original, result, ratio, previewBg, onAp
       strokesRef.current.push(active.stroke);
       setStrokeCount(strokesRef.current.length);
     }
+    if (active.tap && e.type === 'pointerup') runFill(active.tap.point);
+  };
+
+  const runFill = (point) => {
+    const engine = engineRef.current;
+    const x = Math.min(engine.width - 1, Math.max(0, Math.floor(point.x)));
+    const y = Math.min(engine.height - 1, Math.max(0, Math.floor(point.y)));
+    const { fill, error } = buildFill(engine, x, y);
+    if (error === 'solid') {
+      setNotice('Ahí no hay hueco: haz clic sobre los cuadros (zona transparente) que quieres recuperar.');
+      return;
+    }
+    if (error === 'edge') {
+      setNotice('Esa zona llega a la orilla de la foto, así que es el fondo. Para recuperar solo una parte, usa Restaurar.');
+      return;
+    }
+    setNotice('');
+    paintStroke(engine, fill);
+    strokesRef.current.push(fill);
+    setStrokeCount(strokesRef.current.length);
   };
 
   const requestClose = () => {
@@ -459,7 +586,11 @@ export default function RetouchEditor({ original, result, ratio, previewBg, onAp
               key={id}
               className="tool-chip"
               aria-pressed={tool === id}
-              onClick={() => setTool(id)}
+              onClick={() => {
+                setTool(id);
+                setNotice('');
+                if (id === 'fill' || id === 'pan') hideCursor();
+              }}
               disabled={!ready}
             >
               <Icon className="icon-md" aria-hidden="true" /> {label}
@@ -475,7 +606,7 @@ export default function RetouchEditor({ original, result, ratio, previewBg, onAp
             max={MAX_BRUSH}
             value={brush}
             onChange={(e) => setBrushSize(Number(e.target.value))}
-            disabled={!ready || tool === 'pan'}
+            disabled={!ready || tool === 'pan' || tool === 'fill'}
           />
         </label>
 
@@ -485,7 +616,7 @@ export default function RetouchEditor({ original, result, ratio, previewBg, onAp
             onClick={zoomOut}
             disabled={!ready || scale <= minScale + 1e-3}
             aria-label="Alejar"
-            title={`Alejar (${modKey} −)`}
+            title={`Alejar (${modKey} − o ${modKey} + rueda)`}
           >
             <ZoomOut className="icon-md" aria-hidden="true" />
           </button>
@@ -494,7 +625,7 @@ export default function RetouchEditor({ original, result, ratio, previewBg, onAp
             onClick={zoomIn}
             disabled={!ready || scale >= maxScale - 1e-3}
             aria-label="Acercar"
-            title={`Acercar (${modKey} +)`}
+            title={`Acercar (${modKey} + o ${modKey} + rueda)`}
           >
             <ZoomIn className="icon-md" aria-hidden="true" />
           </button>
@@ -526,14 +657,14 @@ export default function RetouchEditor({ original, result, ratio, previewBg, onAp
 
         <div className="retouch-buttons">
           <button
-            className="icon-button"
+            className="icon-button retouch-view-btn"
             onClick={() => setShowOriginal((v) => !v)}
             aria-pressed={showOriginal}
-            aria-label={showOriginal ? 'Ocultar la foto original' : 'Ver la foto original debajo'}
-            title="Ver la original debajo"
+            title="Muestra la foto original, atenuada, debajo del recorte"
             disabled={!ready}
           >
             {showOriginal ? <EyeOff className="icon-md" aria-hidden="true" /> : <Eye className="icon-md" aria-hidden="true" />}
+            {showOriginal ? 'Ocultar Fondo Original' : 'Ver Fondo Original'}
           </button>
           <button
             className="icon-button"
@@ -547,7 +678,10 @@ export default function RetouchEditor({ original, result, ratio, previewBg, onAp
         </div>
       </div>
 
-      <div ref={viewportRef} className={`retouch-viewport${activeTool === 'pan' ? ' is-pan' : ''}`}>
+      <div
+        ref={viewportRef}
+        className={`retouch-viewport${activeTool === 'pan' ? ' is-pan' : activeTool === 'fill' ? ' is-fill' : ''}`}
+      >
         <div className={`retouch-stage preview-bg-${previewBg}`} style={{ width: stageWidth, height: stageHeight }}>
           <img src={original} alt="" className={`retouch-ghost${ghostVisible ? ' is-visible' : ''}`} draggable={false} />
           <canvas
@@ -576,12 +710,17 @@ export default function RetouchEditor({ original, result, ratio, previewBg, onAp
       </div>
 
       <div className="retouch-footer">
-        <p className="retouch-hint">
-          {tool === 'erase' && 'Pinta sobre los restos del fondo para borrarlos.'}
-          {tool === 'restore' && 'Pinta donde la IA borró de más: vuelve la foto original.'}
-          {tool === 'pan' && 'Arrastra para moverte por la foto ampliada.'}
-          <span className="touch-hint"> Pellizca con dos dedos para acercar o alejar.</span>
-          <span className="mouse-hint"> Mantén Espacio para mover la foto.</span>
+        <p className={`retouch-hint${notice ? ' is-notice' : ''}`} role="status">
+          {notice || (
+            <>
+              {tool === 'erase' && 'Pinta sobre los restos del fondo para borrarlos.'}
+              {tool === 'restore' && 'Pinta donde la IA borró de más: vuelve la foto original.'}
+              {tool === 'fill' && 'Haz clic dentro de un hueco que la IA borró de más: se recupera completo de la foto original.'}
+              {tool === 'pan' && 'Arrastra para moverte por la foto ampliada.'}
+              <span className="touch-hint"> Pellizca con dos dedos para acercar o alejar.</span>
+              <span className="mouse-hint"> Mantén Espacio para mover la foto.</span>
+            </>
+          )}
         </p>
         <div className="retouch-actions">
           <button className="secondary-btn" onClick={requestClose}>

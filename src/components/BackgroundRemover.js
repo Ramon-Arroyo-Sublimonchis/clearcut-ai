@@ -8,6 +8,7 @@ import {
 import CompareSlider from './CompareSlider';
 import PhotoFrame from './PhotoFrame';
 import RetouchEditor from './RetouchEditor';
+import { usePreviewZoom, ZoomBar } from './PreviewZoom';
 import AdSlot from './AdSlot';
 import { ECOSYSTEM_LINKS } from '@/content/landing';
 import {
@@ -78,6 +79,7 @@ export default function BackgroundRemover({ adSlot }) {
   const fileInputRef = useRef(null);
   const dialogRef = useRef(null);
   const urlsRef = useRef([]);
+  const dualViewRef = useRef(null);
 
   const trackUrl = useCallback((blob) => {
     const url = URL.createObjectURL(blob);
@@ -243,6 +245,12 @@ export default function BackgroundRemover({ adSlot }) {
   const showUploader = !image && phase !== 'error';
   const ratio = meta ? meta.width / meta.height : 1;
   const done = phase === 'done';
+  // Zoom de los dos visores a la vez; vuelve a "Ajustar" con cada resultado nuevo o retoque
+  const previewZoom = usePreviewZoom(dualViewRef, {
+    enabled: done,
+    imageWidth: meta?.outWidth || meta?.width,
+    resetKey: processedImage,
+  });
   const metaText = meta
     ? [
         meta.downscaled
@@ -353,11 +361,11 @@ export default function BackgroundRemover({ adSlot }) {
                 {phase !== 'error' && (
                   <div className="header-actions">
                     {bgSwitch}
-                    <button className="secondary-btn" onClick={openRetouch} disabled={!done}>
+                    <button className="secondary-btn retouch-cta" onClick={openRetouch} disabled={!done}>
                       <Paintbrush className="icon-md" aria-hidden="true" /> Retocar
                     </button>
                     <button className="secondary-btn" onClick={openExpanded} disabled={!done}>
-                      <Columns2 className="icon-md" aria-hidden="true" /> Comparar
+                      <Columns2 className="icon-md" aria-hidden="true" /> Vista Completa
                     </button>
                     <button className="secondary-btn" onClick={reset}>
                       <Upload className="icon-md" aria-hidden="true" /> Otra imagen
@@ -391,7 +399,7 @@ export default function BackgroundRemover({ adSlot }) {
                 </div>
               ) : (
                 <>
-                  <div className="dual-view">
+                  <div className="dual-view" ref={dualViewRef}>
                     <div className="image-box view-original">
                       <PhotoFrame src={image} alt="Imagen original" label="Original" ratio={ratio} />
                     </div>
@@ -408,10 +416,6 @@ export default function BackgroundRemover({ adSlot }) {
                         >
                           <button className="icon-button frame-expand" onClick={openExpanded} aria-label="Ampliar y comparar">
                             <Maximize2 className="icon-md" aria-hidden="true" />
-                          </button>
-                          {/* A la vista sobre el resultado: es donde se notan los restos del fondo */}
-                          <button className="secondary-btn frame-retouch" onClick={openRetouch}>
-                            <Paintbrush className="icon-md" aria-hidden="true" /> Retocar
                           </button>
                         </PhotoFrame>
                       ) : (
@@ -449,6 +453,17 @@ export default function BackgroundRemover({ adSlot }) {
                         </PhotoFrame>
                       )}
                     </div>
+
+                    {/* Fuera de la foto para no tapar nada; en celular queda entre "Sin fondo" y "Original" */}
+                    {done && (
+                      <div className="preview-toolbar">
+                        <ZoomBar zoom={previewZoom} />
+                        {/* Junto al resultado: es donde se notan los restos del fondo */}
+                        <button className="secondary-btn retouch-cta preview-retouch" onClick={openRetouch}>
+                          <Paintbrush className="icon-md" aria-hidden="true" /> Retocar
+                        </button>
+                      </div>
+                    )}
                   </div>
 
                   {done && (
@@ -474,11 +489,9 @@ export default function BackgroundRemover({ adSlot }) {
                         {bgSwitch}
                         <div className="mobile-more-row">
                           <button className="secondary-btn" onClick={openExpanded} disabled={!done}>
-                            <Columns2 className="icon-md" aria-hidden="true" /> Comparar
+                            <Columns2 className="icon-md" aria-hidden="true" /> Vista Completa
                           </button>
-                          <button className="secondary-btn" onClick={openRetouch} disabled={!done}>
-                            <Paintbrush className="icon-md" aria-hidden="true" /> Retocar
-                          </button>
+                          {/* "Retocar" no se repite aquí: en celular ya está en la barra bajo el resultado */}
                           <button className="secondary-btn" onClick={reset}>
                             <Upload className="icon-md" aria-hidden="true" /> Otra imagen
                           </button>

@@ -6,7 +6,8 @@ Herramienta web gratuita para quitar el fondo de imágenes con IA. Todo el proce
 
 - [Next.js](https://nextjs.org) 16 + React 19.
 - El recorte usa [@imgly/background-removal](https://github.com/imgly/background-removal-js) con el modelo ISNet (`isnet_fp16`), ejecutado con ONNX Runtime (WebGPU si está disponible, si no WASM).
-- Si la IA deja restos del fondo o borra de más, el editor "Retocar" (`src/components/RetouchEditor.js`) permite corregirlo con un pincel de Borrar y otro de Restaurar sobre el PNG en su resolución real.
+- Si la IA deja restos del fondo o borra de más, el editor "Retocar" (`src/components/RetouchEditor.js`) permite corregirlo con un pincel de Borrar y otro de Restaurar sobre el PNG en su resolución real. "Rellenar" recupera de un clic un hueco que la IA borró dentro de la figura (por ejemplo, una zona blanca del diseño); si la zona llega a la orilla de la foto, es el fondo y no la toca.
+- La vista previa tiene zoom sincronizado en "Original" y "Sin fondo" (`src/components/PreviewZoom.js`): botones, Ctrl + rueda, arrastre y pellizco con dos dedos. Es solo visual y no cambia el PNG.
 - El modelo y los archivos WASM se descargan del CDN de IMG.LY la primera vez y el navegador los guarda en caché.
 
 ## Desarrollo
